@@ -1,4 +1,4 @@
-= elf2efi
+# elf2efi
 
 This is the "elf2efi" utility, separated from the iPXE package
 (https://github.com/ipxe/ipxe / https://ipxe.org/). It may originally
@@ -22,7 +22,7 @@ The source file for elf2efi is credited to Michael Brown
 (mbrown@fensystems.co.uk). This package was created by Davin McCall
 (davmac@davmac.org).
 
-== Build and run
+## Build and run
 
 This repo is in a pretty rough-and-ready state. To build just run "make".
 This will produce two binaries, "elf2efi32" and "elf2efi64", to be used for
@@ -37,7 +37,7 @@ elf2efi64 --subsystem=10 input.efi.so output.efi
 
 The build has been tested on Linux and has no dependencies. 
 
-== Why not just use objcopy?
+## Why not just use objcopy?
 
 POSIX-UEFI (see links) and possibly GNU EFI use the "objcopy" utility (from
 GNU binutils) to convert ELF format files to PE+. However:
@@ -92,7 +92,7 @@ relevant documenation in the binutils manual).
 I suspect that some of the issues outlined above are due to bugs or at least
 oversights in binutils.
 
-== Constructing an EFI application in ELF format
+## Constructing an EFI application in ELF format
 
 To create a working EFI application (mostly assuming GCC compiler):
 
@@ -118,7 +118,7 @@ To create a working EFI application (mostly assuming GCC compiler):
 
 (I plan to add a small working example application at some point.)
 
-== Links
+## Links
 
  * UEFI specifications - https://uefi.org/specifications
  * UEFI headers (extracted from EDK2) - https://github.com/kiznit/uefi-headers
