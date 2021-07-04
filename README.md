@@ -42,6 +42,7 @@ The build has been tested on Linux and has no dependencies.
 POSIX-UEFI (see links) and possibly GNU EFI use the "objcopy" utility (from
 GNU binutils) to convert ELF format files to PE+. However:
 
+ * This requires binutils has been built with the appropriate support.
  * The EFI loads applications at any arbitrary address; it requires they be
    relocatable.
  * objcopy doesn't preserve relocations in executable images when copying
@@ -57,40 +58,68 @@ GNU binutils) to convert ELF format files to PE+. However:
    a section is present, it must already (within the ELF input...) be in the
    correct format of a PE+ relocation table.
 
-You also can't use `ld -q` to link directly to PE+ format (with relocations), because:
+If binutils supports the PE+ format, though, why not link directly to that
+and skip the problematic objcopy step?
+
+First, you can't use `ld -q` to link an executable ELF with relocations
+retained, and then another `ld` stage to convert to PE+, because:
+
 ```
 ld: relocatable linking with relocations from format elf64-x86-64 (helloworld.o) to format pei-x86-64 (helloworld.efi) is not supported
 ```
 
-When using `ld` (without `-q`) to produce PE+ format directly (with code
-compiled with `-fpie` to avoid the need for relocations), it does not appear
-to set certain fields in the PE+ headers correctly (eg size and address of
-.text, .data and .bss sections get reported as 0). Also, it is not possible
-to set the subsystem (to EFI application) unless linker emulation is enabled,
+That perhaps makes sense; we are still trying to use an executable object as
+an input object.
+
+We could try to skip the intermediate object altogether: use `ld` (without
+`-q`) to produce PE+ format directly, i.e. just add `--oformat pei-x86-64`
+to the link. Unfortunately, this does not appear to set certain fields in the
+PE+ headers correctly (eg size and address of .text, .data and .bss sections
+get reported as 0). Also, it is not possible to set the subsystem to the
+correct value (10, for EFI application) unless linker emulation is enabled,
 i.e.:
 
 ```
-ld -m i386pep --subsystem 10 ...
+ld -m i386pep --oformat pei-x86-64 --subsystem 10 ...
 ```
 
-However, this seems to prevent ld from recognizing elf objects in archives
-(they are ignored). You can still a link a bunch of objects by specifying
-their names immediately, but the EFI system (at least OVMF from Tianocore)
-will refuse to load the resulting file anyway.
+However, this emulation seems to prevent ld from recognizing elf objects in
+archives (they are ignored). You can still a link a bunch of objects by
+specifying their names immediately, or you can first link to a relocatable ELF
+file (using `ld -r`) and then use the result as a singular input to a final
+stage link (to PE+ format), using `-m i386pep` as above.
 
-I have compared a file produced using a direct link by `ld` as described
-with another (working) file produced using `objcopy` (and `-fpie`, with a
-manually-generated `.reloc` section), and the only easily observable
-difference was the presence of the `IMAGE_FILE_LARGE_ADDRESS_AWARE`
-characteristic in the former. There *is* a `--disable-large-address-aware`
-option to ld, but it's apparently supported only with the `i386pe` (rather
-than `i386pep`) emulation, which doesn't support the `pei-x86-64` output
-format. (I am not completely sure, but I think i386pe is for 32-bit PE
-production, and i386pep for 64-bit PEs. There is a distinct lack of
-relevant documenation in the binutils manual).
+The source objects must be compiled with -fpie, or otherwise the resulting
+binary may be refused by the EFI system (as "Unsupported", possibly due to
+some unsupported relocation type emitted by binutils), or it may exhibit
+failures at runtime (I suspect either binutils is producing incorrect
+relocation information, or the EFI system is mishandling a certain type of
+relocation which elf2efi doesn't generate).
 
-I suspect that some of the issues outlined above are due to bugs or at least
-oversights in binutils.
+Note, the "fake .reloc" section trick necessary with the objdump method is
+not necessary with the direct linking method, and in my experiments it in
+fact caused a problem resulting in a binary which the EFI system refused to
+load.
+
+(By the way, I gather "pei-x86-64" is the PE *Image* or executable format, as
+opposed to "pe-x86-64" which is the PE *object* format which is intended as an
+input format to linking. There is a distinct lack of relevant documenation in
+the binutils manual).
+
+In summary, to produce an executable EFI binary:
+ * If you have binutils with pei-x86-64 support (or equivalent for your
+   processor architecture), you can use one of two methods:
+   * The objcopy trick used by GNU EFI / POSIX-UEFI, which requires
+     compiling with `-fpie`, or with `-fpic` and a relocation hack
+   * link directly to PE+ as described above, which seems to work reliably
+     at least for x86-64, *if* `-fpie` is used during compilation
+ * If you don't have suitable binutils support, or want or need to link
+   non-position-independent code (not compiled with `-fpie` or `-fpic`):
+   * link to executable ELF and then convert to PE+ using elf2efi.
+
+While using pure binutils *is* possible if it is correctly configured when
+built, it's certainly easier and more flexible to go the latter route and
+use elf2efi.
 
 ## Constructing an EFI application in ELF format
 
@@ -98,10 +127,12 @@ To create a working EFI application (mostly assuming GCC compiler):
 
  * Do not link against standard system libraries (i.e. compile with
    `-ffreestanding`)
- * Turn off use of facilities requiring runtime support (eg
+ * Turn off use of facilities requiring runtime support (eg use
    `-fno-stack-protector`)
  * Use the ms_abi, i.e. `-mabi=ms_abi`, or mark EFI API calls and the
    application entry point as ms_abi using `__attribute__((ms_abi))`.
+   GCC documentation implies that `-maccumulate-outgoing-args` will also be
+   required.
  * EFI applications must be relocatable. Either compile with `-fpie`, or
    link with `-q` to preserve relocations in the executable (these will then
    be converted to PE+ relocations in the `.reloc` section by elf2efi).
