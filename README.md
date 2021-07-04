@@ -83,16 +83,23 @@ i.e.:
 ld -m i386pep --oformat pei-x86-64 --subsystem 10 ...
 ```
 
-However, this emulation seems to prevent ld from recognizing elf objects in
-archives (they are ignored). You can still a link a bunch of objects by
-specifying their names immediately, or you can first link to a relocatable ELF
-file (using `ld -r`) and then use the result as a singular input to a final
-stage link (to PE+ format), using `-m i386pep` as above.
+This (somewhat) works! We can even use `--enable-reloc-section` to cause
+relocations to be generated, meaing that, in theory, we do not have to
+compile the code with `-fpie` (but more on this shortly).
 
-The source objects must be compiled with -fpie, or otherwise the resulting
-binary may be refused by the EFI system (as "Unsupported", possibly due to
-some unsupported relocation type emitted by binutils), or it may exhibit
-failures at runtime (I suspect either binutils is producing incorrect
+The `i386pep` emulation seems to prevent ld from recognizing elf objects in
+archives (they are ignored). For example, linking against some library
+"libmylib.a" with `-lmylib` will simply not work. You can still a link a bunch
+of objects by specifying their names immediately, or you can first link
+(against the archive) to a relocatable ELF file using `ld -r`, and then use the
+result as a singular input to a final stage link (to PE+ format), using
+`-m i386pep` as above.
+
+Despite apparent success of the link, source objects may need to be compiled
+with `-fpie`, or otherwise the resulting binary may be refused by the EFI
+system (as "Unsupported", possibly due to some unsupported relocation type
+emitted by binutils), or it may exhibit failures at runtime (I have seen the
+latter when using `-fpic`; I suspect either binutils is producing incorrect
 relocation information, or the EFI system is mishandling a certain type of
 relocation which elf2efi doesn't generate).
 
