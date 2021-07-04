@@ -1,0 +1,9 @@
+The elf2efi program is distributed under the GPLv2 licence, with additional
+requirements due to the inclusion of EFI header files which are distributed
+and used under a BSD licence.
+
+See COPYING.GPLv2 for the GPLv2 licence text.
+
+See COPYING.EFI-headers.BSD for details of the BSD-licenced headers and
+relevant licence text, including the required copyright notice, disclaimer
+and list of conditions.
