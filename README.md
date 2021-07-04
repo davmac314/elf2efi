@@ -18,6 +18,10 @@ into the PE+ format and expect it to work as an EFI application.
 This is version 1.0, from commit 2690f730961e335875cac5fd9cf870a94eaef11a
 of the iPXE repository.
 
+The source file for elf2efi is credited to Michael Brown
+(mbrown@fensystems.co.uk). This package was created by Davin McCall
+(davmac@davmac.org).
+
 == Build and run
 
 This repo is in a pretty rough-and-ready state. To build just run "make".
