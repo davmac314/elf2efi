@@ -1,0 +1,6 @@
+./OVMF_*
+./helloworld.efi.so
+./helloworld.efi
+./*.o
+./image/**
+./disk.img

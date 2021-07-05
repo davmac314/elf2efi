@@ -136,10 +136,10 @@ To create a working EFI application (mostly assuming GCC compiler):
    `-ffreestanding`)
  * Turn off use of facilities requiring runtime support (eg use
    `-fno-stack-protector`)
- * Use the ms_abi, i.e. `-mabi=ms_abi`, or mark EFI API calls and the
-   application entry point as ms_abi using `__attribute__((ms_abi))`.
-   GCC documentation implies that `-maccumulate-outgoing-args` will also be
-   required.
+ * On x86/x86-64, use the ms_abi (i.e. `-mabi=ms`) or at least mark EFI API
+   calls and the application entry point as ms_abi using
+   `__attribute__((ms_abi))`. GCC documentation implies that
+   `-maccumulate-outgoing-args` will also be required.
  * EFI applications must be relocatable. Either compile with `-fpie`, or
    link with `-q` to preserve relocations in the executable (these will then
    be converted to PE+ relocations in the `.reloc` section by elf2efi).
@@ -154,7 +154,7 @@ To create a working EFI application (mostly assuming GCC compiler):
    `.rodata` and `.bss`. Conversion will generate `.reloc` in the PE+ output
    if there are relocations and may generate `.debug`.
 
-(I plan to add a small working example application at some point.)
+See examples/ folder for examples.
 
 ## Links
 

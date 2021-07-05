@@ -1,0 +1,7 @@
+# This is a scripted input for the Linux "sfdisk" program.
+# It will create a GPT partition table and a single UEFI system partition.
+
+label: gpt
+sector-size: 512
+
+type=uefi, bootable
