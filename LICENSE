@@ -7,3 +7,6 @@ See COPYING.GPLv2 for the GPLv2 licence text.
 See COPYING.EFI-headers.BSD for details of the BSD-licenced headers and
 relevant licence text, including the required copyright notice, disclaimer
 and list of conditions.
+
+The example under examples/helloworld is under the CC0 1.0 Universal license.
+See the LICENSE file in that directory.
