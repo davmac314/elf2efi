@@ -37,7 +37,7 @@ elf2efi64 --subsystem=10 input.efi.so output.efi
 
 The build has been tested on Linux and has no dependencies. 
 
-## Why not just use objcopy?
+## Alternative #1: GNU binutils objcopy
 
 POSIX-UEFI (see links) and possibly GNU EFI use the "objcopy" utility (from
 GNU binutils) to convert ELF format files to PE+. However:
@@ -45,7 +45,7 @@ GNU binutils) to convert ELF format files to PE+. However:
  * This requires binutils has been built with the appropriate support.
  * The EFI loads applications at any arbitrary address; it requires they be
    relocatable.
- * objcopy doesn't preserve relocations in executable images when copying
+ * But, objcopy doesn't preserve relocations in executable images when copying
    from ELF to PE+. This means that the code must be position-independent,
    or must contain a stub which performs the ELF relocations (which are in
    sections that must be copied to the output).
@@ -58,50 +58,40 @@ GNU binutils) to convert ELF format files to PE+. However:
    a section is present, it must already (within the ELF input...) be in the
    correct format of a PE+ relocation table.
 
+To get around these problems, POSIX-UEFI and GNU EFI do a hack: they include
+a stub to perform ELF relocations. They also compile with `-fpic` to reduce
+the number of relocations needed (though for x86-64 at least, `-fpie` is a
+much better choice). Finally, they include a `.reloc` section in PE+
+relocation format, so that objcopy won't mark the result as having had
+relocations stripped.
+
+(The "elf2efi" method in comparison doesn't need these hacks, and doesn't
+necessitate compiling with either `-fpic` or `fpie`).
+
+## Alternative #2: GNU binutils link directly to PE+
+
 If binutils supports the PE+ format, though, why not link directly to that
 and skip the problematic objcopy step?
 
-First, you can't use `ld -q` to link an executable ELF with relocations
-retained, and then another `ld` stage to convert to PE+, because:
+This is tricky to get right, but it is possible, at least with a recent
+binutils; it still needs to be built with the appropriate support.
+
+The link command looks something like this:
 
 ```
-ld: relocatable linking with relocations from format elf64-x86-64 (helloworld.o) to format pei-x86-64 (helloworld.efi) is not supported
+ld --strip-debug -m i386pep --oformat pei-x86-64 --subsystem 10 \
+    --image-base 0 --enable-reloc-section $(OBJECTS)
 ```
 
-That perhaps makes sense; we are still trying to use an executable object as
-an input object.
+This works pretty well. The `--enable-reloc-section` causes (PE-format)
+relocations to be generated, meaing that we do not have to compile the code
+with `-fpie` -- the relocations will be "native" PE-format and will be
+performed by the EFI loader.
 
-We could try to skip the intermediate object altogether: use `ld` (without
-`-q`) to produce PE+ format directly, i.e. just add `--oformat pei-x86-64`
-to the link. Unfortunately, this does not appear to set certain fields in the
-PE+ headers correctly (eg size and address of .text, .data and .bss sections
-get reported as 0). Also, it is not possible to set the subsystem to the
-correct value (10, for EFI application) unless linker emulation is enabled,
-i.e.:
-
-```
-ld -m i386pep --oformat pei-x86-64 --subsystem 10 ...
-```
-
-This (somewhat) works! We can even use `--enable-reloc-section` to cause
-relocations to be generated, meaing that, in theory, we do not have to
-compile the code with `-fpie` (but more on this shortly).
-
-The `i386pep` emulation seems to prevent ld from recognizing elf objects in
-archives (they are ignored). For example, linking against some library
-"libmylib.a" with `-lmylib` will simply not work. You can still a link a bunch
-of objects by specifying their names immediately, or you can first link
-(against the archive) to a relocatable ELF file using `ld -r`, and then use the
-result as a singular input to a final stage link (to PE+ format), using
-`-m i386pep` as above.
-
-Despite apparent success of the link, source objects may need to be compiled
-with `-fpie`, or otherwise the resulting binary may be refused by the EFI
-system (as "Unsupported", possibly due to some unsupported relocation type
-emitted by binutils), or it may exhibit failures at runtime (I have seen the
-latter when using `-fpic`; I suspect either binutils is producing incorrect
-relocation information, or the EFI system is mishandling a certain type of
-relocation which elf2efi doesn't generate).
+If you want to include ELF library archives in the link (with the typical
+`-llibname`), use `--format=elf64-x86-64` to specify the input format;
+otherwise the objects in the archive won't be pulled in (I suspect that
+the `i386pep` emulation makes the linker look for PE-format objects).
 
 Note, the "fake .reloc" section trick necessary with the objdump method is
 not necessary with the direct linking method, and in my experiments it in
@@ -119,16 +109,12 @@ In summary, to produce an executable EFI binary:
    * The objcopy trick used by GNU EFI / POSIX-UEFI, which requires
      compiling with `-fpie`, or with `-fpic` and a relocation hack
    * link directly to PE+ as described above, which seems to work reliably
-     at least for x86-64, *if* `-fpie` is used during compilation
+     at least for x86-64, and is a cleaner solution than the objcopy method.
  * If you don't have suitable binutils support, or want or need to link
    non-position-independent code (not compiled with `-fpie` or `-fpic`):
    * link to executable ELF and then convert to PE+ using elf2efi.
 
-While using pure binutils *is* possible if it is correctly configured when
-built, it's certainly easier and more flexible to go the latter route and
-use elf2efi.
-
-## Constructing an EFI application in ELF format
+## Constructing an EFI application
 
 To create a working EFI application (mostly assuming GCC compiler):
 
@@ -136,25 +122,34 @@ To create a working EFI application (mostly assuming GCC compiler):
    `-ffreestanding`)
  * Turn off use of facilities requiring runtime support (eg use
    `-fno-stack-protector`)
- * On x86/x86-64, use the ms_abi (i.e. `-mabi=ms`) or at least mark EFI API
-   calls and the application entry point as ms_abi using
-   `__attribute__((ms_abi))`. GCC documentation implies that
-   `-maccumulate-outgoing-args` will also be required.
+
+For x86-64:
+
+ * Use the ms_abi (i.e. `-mabi=ms`) or at least mark EFI API calls and the
+   application entry point as ms_abi using `__attribute__((ms_abi))`. GCC
+   documentation implies that `-maccumulate-outgoing-args` will also be
+   required.
+ * Don't use AVX or similar extensions (beyond SSE). These may be supported
+   by the processor but not enabled by the EFI environment. Eg using
+   `-march=x86-64 -mno-sse` seemed to work for me. Failure to do this may
+   result in a binary that works in QEMU but fails on real hardware (or when
+   run in QEMU with KVM).
+
+If using elf2efi:
+
  * EFI applications must be relocatable. Either compile with `-fpie`, or
    link with `-q` to preserve relocations in the executable (these will then
    be converted to PE+ relocations in the `.reloc` section by elf2efi).
- * Don't use AVX or similar extensions (beyond SSE). These may be supported
-   by the processor but not enabled by the EFI environment. Eg using
-   `-march=x86-64` seemed to work for me, and/or there's the `-mno-avx`-style
-   options. Failure to do this may result in a binary that works in QEMU but
-   fails on real hardware (or when run in QEMU with KVM).
+ * You may need to strip debug sections from the ELF file (use
+   `--strip-debug`).
  * Certain sections may not be convertible (eg `.note.gnu.property` may have
-   to be discarded). Others can be converted but are useless so may as well
-   be discarded. In practice you probably only need `.text`, `.data`,
-   `.rodata` and `.bss`. Conversion will generate `.reloc` in the PE+ output
-   if there are relocations and may generate `.debug`.
+   to be discarded, via use of a suitable linker script). Others can be
+   converted but are useless so may as well be discarded. In practice you
+   probably only need `.text`, `.data`, `.rodata` and `.bss`. Conversion will
+   generate `.reloc` in the PE+ output if there are relocations and may
+   generate `.debug`.
 
-See examples/ folder for examples.
+See `examples/` folder for examples.
 
 ## Links
 

@@ -1,8 +1,17 @@
+# link to ELF, then convert to PE using elf2efi:
 helloworld.efi: main.o
 	ld -s -q -Bsymbolic -Bsymbolic-functions -T link-elf-efi.lds \
 	  -o helloworld.efi.so \
 	  main.o
 	../../elf2efi64 --subsystem=10 helloworld.efi.so helloworld.efi
+
+# Alernative: link directly to PE.
+#helloworld.efi: main.o
+#	ld -s -T link-elf-efi.lds \
+#	  -mi386pep --oformat pei-x86-64 --subsystem 10 --image-base 0 \
+#	  --enable-reloc-section \
+#	  -o helloworld.efi \
+#	  main.o
 
 main.o: main.c
 	gcc -ffreestanding -fshort-wchar -mabi=ms -maccumulate-outgoing-args -march=x86-64 -fno-stack-protector -c main.c
