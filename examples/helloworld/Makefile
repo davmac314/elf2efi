@@ -13,8 +13,18 @@ helloworld.efi: main.o
 #	  -o helloworld.efi \
 #	  main.o
 
+# For either alternative above, compile to ELF object:
 main.o: main.c
-	gcc -ffreestanding -fshort-wchar -mabi=ms -maccumulate-outgoing-args -march=x86-64 -fno-stack-protector -c main.c
+	gcc -ffreestanding -fshort-wchar -mabi=ms -maccumulate-outgoing-args -march=x86-64 -mno-sse -fno-stack-protector -fpie -c main.c
+
+
+# Alternative: target UEFI directly using LLVM/clang. In this case, compile to COFF object format.
+#helloworld.efi: main.o
+#	clang -target x86_64-unknown-windows -nostdlib -fuse-ld=lld-link -Wl,-subsystem:efi_application -Wl,-entry:EfiMain -o helloworld.efi main.o
+#
+#main.o: main.c
+#	clang -target x86_64-unknown-windows -ffreestanding -march=x86-64 -fno-stack-protector -mno-sse -mcmodel=large -c main.c
+
 
 # Everything below here is concerned with building disk images and running in QEMU
 
