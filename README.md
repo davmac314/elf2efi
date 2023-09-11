@@ -46,8 +46,8 @@ There are options for making EFI executables other than by using `elf2efi`:
 
 ## Alternative #1: GNU binutils objcopy
 
-POSIX-UEFI (see links) and possibly GNU EFI use the "objcopy" utility (from
-GNU binutils) to convert ELF format files to PE+. However:
+GNU EFI uses the "objcopy" utility (from GNU binutils) to convert ELF format
+files to PE+. However:
 
  * This requires binutils has been built with the appropriate support.
  * The EFI loads applications at any arbitrary address; it requires they be
@@ -65,12 +65,11 @@ GNU binutils) to convert ELF format files to PE+. However:
    a section is present, it must already (within the ELF input...) be in the
    correct format of a PE+ relocation table.
 
-To get around these problems, POSIX-UEFI and GNU EFI do a hack: they include
-a stub to perform ELF relocations. They also compile with `-fpic` to reduce
-the number of relocations needed (though for x86-64 at least, `-fpie` is a
-much better choice). Finally, they include a `.reloc` section in PE+
-relocation format, so that objcopy won't mark the result as having had
-relocations stripped.
+To get around these problems, GNU EFI does a hack: it includes a stub to
+perform ELF relocations. They also compile with `-fpic` to reduce the number
+of relocations needed (though for x86-64 at least, `-fpie` is a much better
+choice). Finally, they include a `.reloc` section in PE+ relocation format, so
+that objcopy won't mark the result as having had relocations stripped.
 
 (The "elf2efi" method in comparison doesn't need these hacks, and doesn't
 necessitate compiling with either `-fpic` or `-fpie`).
@@ -134,8 +133,8 @@ See also the general notes on constructing an EFI application below.
 In summary, to produce an executable EFI binary:
  * If you have binutils with pei-x86-64 support (or equivalent for your
    processor architecture), you can use one of two methods:
-   * The objcopy trick used by GNU EFI / POSIX-UEFI, which requires
-     compiling with `-fpie` or `-fpic`, and a relocation hack
+   * The objcopy trick used by GNU EFI, which requires compiling with `-fpie`
+     or `-fpic`, and a relocation hack
    * link directly to PE+ as described above, which seems to work reliably
      at least for x86-64, and is a cleaner solution than the objcopy method.
  * If you have LLVM including clang and LLD, built with appropriate support
@@ -203,6 +202,5 @@ See `examples/` folder for examples.
  * UEFI headers (extracted from EDK2) - https://github.com/kiznit/uefi-headers
  * GNU EFI - https://sourceforge.net/projects/gnu-efi/
  * "Goodbye GNU-EFI!" (use clang/lld to produce EFI apps) - https://dvdhrm.github.io/2019/01/31/goodbye-gnuefi/
- * POSIX-UEFI - https://gitlab.com/bztsrc/posix-uefi
  * OS-Dev wiki UEFI page - https://wiki.osdev.org/UEFI
  * pev, "the PE file analysis toolkit" - https://pev.sourceforge.io/
