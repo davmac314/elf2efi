@@ -558,7 +558,7 @@ static struct pe_section * process_section ( struct elf_file *elf,
 			  EFI_IMAGE_SCN_MEM_WRITE );
 		applicable_start = &data_start;
 		applicable_end = &data_mid;
-	} else if ( shdr->sh_type == SHT_PROGBITS ) {
+	} else if ( shdr->sh_type == SHT_PROGBITS || shdr->sh_type == SHT_X86_64_UNWIND ) {
 		/* .rodata-type section */
 		new->hdr.Characteristics =
 			( EFI_IMAGE_SCN_CNT_INITIALIZED_DATA |
