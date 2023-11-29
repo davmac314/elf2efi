@@ -523,7 +523,7 @@ static struct pe_section * process_section ( struct elf_file *elf,
 
 	/* Allocate PE section */
 	section_memsz = shdr->sh_size;
-	section_filesz = ( ( shdr->sh_type == SHT_PROGBITS ) ?
+	section_filesz = ( ( shdr->sh_type == SHT_PROGBITS || shdr->sh_type == SHT_X86_64_UNWIND ) ?
 			   efi_file_align ( section_memsz ) : 0 );
 	new = xmalloc ( sizeof ( *new ) + section_filesz );
 	memset ( new, 0, sizeof ( *new ) + section_filesz );
@@ -582,7 +582,7 @@ static struct pe_section * process_section ( struct elf_file *elf,
 	}
 
 	/* Copy in section contents */
-	if ( shdr->sh_type == SHT_PROGBITS ) {
+	if ( shdr->sh_type == SHT_PROGBITS || shdr->sh_type == SHT_X86_64_UNWIND ) {
 		memcpy ( new->contents, ( elf->data + shdr->sh_offset ),
 			 shdr->sh_size );
 	}
