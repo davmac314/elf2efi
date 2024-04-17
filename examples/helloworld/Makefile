@@ -15,7 +15,7 @@ helloworld.efi: main.o
 
 # For either alternative above, compile to ELF object:
 main.o: main.c
-	gcc -ffreestanding -fshort-wchar -mabi=ms -maccumulate-outgoing-args -march=x86-64 -mno-sse -fno-stack-protector -fpie -c main.c
+	gcc -ffreestanding -fshort-wchar -mabi=ms -maccumulate-outgoing-args -march=x86-64 -mno-red-zone -fno-stack-protector -fpie -c main.c
 
 
 # Alternative: target UEFI directly using LLVM/clang. In this case, compile to COFF object format.
