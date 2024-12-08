@@ -17,21 +17,24 @@ Note: The makefile assumes you are building an application for x86-64.
 
 ## Running in QEMU
 
-To test the applicatio in QEMU, you will first need to copy the OVMF ("open
-virtual machine firmware") firmware files into this directory. The files are:
+To test the application in QEMU, you will need to have OVMF ("open virtual
+machine firmware") firmware files available.
 
- * OVMF_CODE-pure-efi.fd
- * OVMF_VARS-pure-efi.fd
+These are normally distributed with QEMU, or some distributions as part of the
+"ovmf" package. Check the Makefile and change `QEMU_FW_BASEDIR` (or
+`OVMF_CODE_FILE` and `OVMF_VARS_FILE`) if necessary. In case your
+distribution does not include them, you can get suitable pre-built files here:
 
-See this OVMF page for information on how to build, or how to find builds,
-of these files: https://github.com/tianocore/tianocore.github.io/wiki/OVMF
-
-Currently, unofficial builds can also be found here:
 https://retrage.github.io/edk2-nightly/
 
-(For example, get the `RELEASEX64_OVMF_CODE.fd` and `RELEASEX64_OVMF_VARS.fd`
-files, and rename them to `OVMF_CODE-pure-efi.fd` and `OVMF_VARS-pure-efi.fd`
-respectively).
+(eg `RELEASEX64_OVMF_CODE.fd` and `RELEASEX64_OVMF_DATA.fd`). Note that this
+is an external link with a separate maintainer, we are not responsible for
+them and cannot make guarantees of their integrity or suitability. If you
+prefer, you can build the files yourself; they are part of EDK2:
+
+https://github.com/tianocore/edk2
+
+(Build instructions are outside the scope of this document).
 
 Once the firmware files are in place, you can use `make run-in-qemu` to run.
 

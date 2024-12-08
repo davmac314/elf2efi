@@ -228,7 +228,8 @@ For x86-64:
    x86-64, `-fpie` is really the best choice as it generates efficient code
    with few relocations. (Note that for 32-bit code this may not be
    necessary, and `-fpie` will generate less efficient code). You cannot use
-   `-fpie` with Clang for the x86_64-unknown-windows target.
+   `-fpie` with Clang for the x86_64-unknown-windows target (at least not with
+   Clang 14.0.x).
  * Use the ms_abi (i.e. `-mabi=ms`) or at least mark EFI API calls and the
    application entry point as ms_abi using `__attribute__((ms_abi))`. GCC
    documentation implies that `-maccumulate-outgoing-args` will also be
@@ -252,6 +253,10 @@ If using elf2efi, also:
    probably only need `.text`, `.data`, `.rodata` and `.bss`. Conversion will
    generate `.reloc` in the PE+ output if there are relocations and may
    generate `.debug`.
+ * If building with clang/clang++ and linking with lld (`ld.lld`), add
+   `-fdirect-access-external-data` to the compiler command line to avoid
+   "Unrecognised relocation type 42" errors from elf2efi (the problem only
+   manifests with the combination of this compiler and linker together).
 
 See `examples/` folder for examples.
 

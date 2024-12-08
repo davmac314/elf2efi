@@ -1,3 +1,11 @@
+# OVMF firmware location. See the README. There are two files: code and "vars", which is used as
+# a template for the "OVMF-VARS.fd" file which will be used to emulate non-volatile storage.
+# The files should be distributed with QEMU, but some distributions may not do so.
+QEMU_FW_BASEDIR = /usr/share/qemu
+OVMF_CODE_FILE := $(QEMU_FW_BASEDIR)/edk2-x86_64-code.fd
+OVMF_VARS_FILE := $(QEMU_FW_BASEDIR)/edk2-i386-vars.fd
+
+
 # link to ELF, then convert to PE using elf2efi:
 helloworld.efi: main.o
 	ld -s -q -Bsymbolic -Bsymbolic-functions -T link-elf-efi.lds \
@@ -47,14 +55,17 @@ disk.img-linux: helloworld.efi
 	/usr/sbin/mkfs.fat -F 32 --offset=2048 -S 512 disk.img $$((91669 * 512 / 1024))
 	mcopy -i disk.img@@1M helloworld.efi ::/
 
-run-in-qemu: image-dir
-	@if [ ! -e OVMF_CODE-pure-efi.fd -o ! -e OVMF_VARS-pure-efi.fd ]; then \
-	    echo "!!! OVMF firmware images are missing; please download them to this directory."; \
+OVMF-VARS.fd:
+	cp $(OVMF_VARS_FILE) OVMF-VARS.fd
+
+run-in-qemu: OVMF-VARS.fd image-dir
+	@if [ ! -e $(OVMF_CODE_FILE) ]; then \
+	    echo "!!! OVMF firmware images are missing; see README."; \
 	    exit 1; \
 	fi
 	qemu-system-x86_64 \
-	  -drive if=pflash,format=raw,unit=0,file=OVMF_CODE-pure-efi.fd,readonly=on \
-	  -drive if=pflash,format=raw,unit=1,file=OVMF_VARS-pure-efi.fd \
+	  -drive if=pflash,format=raw,unit=0,file=$(OVMF_CODE_FILE),readonly=on \
+	  -drive if=pflash,format=raw,unit=1,file=OVMF-VARS.fd \
 	  -net none  \
 	  -drive file=fat:rw:image,media=disk,format=raw
 

@@ -1,2 +1,7 @@
 /elf2efi32
 /elf2efi64
+/examples/helloworld/image
+/examples/helloworld/OVMF-VARS.fd
+/examples/helloworld/helloworld.efi.so
+/examples/helloworld/helloworld.efi
+*.o
