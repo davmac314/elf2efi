@@ -9,11 +9,18 @@ See LICENSE file in this directory for license information.
 
 The original example in the repository linked above builds using mingw64-gcc
 (i.e. a cross-compilation toolchain). It has been modified to build with the
-native gcc and elf2efi.
+native (ELF) gcc and elf2efi. Run "make" at the top level of this repository
+to build elf2efi, then run "make" in this directory to build the example.
 
 The resulting binary is helloworld.efi.
 
+The Makefile also contains examples of how to build using other techniques
+(linking directly to the PE format using a suitably-built binutils, or cross-
+compiling using LLVM's Clang and LLD). You can uncomment whatever technique
+you prefer.
+
 Note: The makefile assumes you are building an application for x86-64.
+
 
 ## Running in QEMU
 
