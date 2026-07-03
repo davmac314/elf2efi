@@ -74,9 +74,10 @@ files to PE+. However:
 
 To get around these problems, GNU-EFI does a hack: it includes a stub to
 perform ELF relocations. They also compile with `-fpic` to reduce the number
-of relocations needed (though for x86-64 at least, `-fpie` is a much better
-choice). Finally, they include a `.reloc` section in PE+ relocation format, so
-that objcopy won't mark the result as having had relocations stripped.
+of relocations needed (though for x86-64 at least, `-fpie` would be a much
+better choice). Finally, they include a `.reloc` section in PE+ relocation
+format, so that objcopy won't mark the result as having had relocations
+stripped.
 
 (The "elf2efi" method in comparison doesn't need these hacks).
 
@@ -86,7 +87,9 @@ If binutils supports the PE+ format, though, why not link directly to that
 and skip the problematic objcopy step?
 
 This is tricky to get right, but it is possible, at least with a recent
-binutils; it still needs to be built with the appropriate support.
+binutils; it still needs to be built with the appropriate support (configure
+binutils with `--enable-targets=x86_64-none-pe,x86_64-none-pep` when
+building them).
 
 The link command looks something like this:
 
@@ -108,14 +111,14 @@ otherwise the objects in the archive won't be pulled in (I suspect that
 the `i386pep` emulation makes the linker look for PE-format objects).
 
 Note, the "fake .reloc" section trick necessary with the objcopy method is
-not necessary with the direct linking method, and in my experiments it in
-fact caused a problem resulting in a binary which the EFI system refused to
-load (I did not fully investigate).
+not necessary with the direct linking method, and in my experiments the trick
+when used with direct linking in fact caused a problem resulting in a binary
+which the EFI system refused to load (I did not fully investigate).
 
 (By the way, I gather "pei-x86-64" is the PE *Image* or executable format, as
 opposed to "pe-x86-64" which is the PE *object* format - also known as COFF -
 which is intended as an input format to linking. There is a distinct lack of
-relevant documenation in the binutils manual).
+relevant documentation in the binutils manual).
 
 Finally, it's worth noting that you can link to executable ELF (with relations
 intact, via `ld -q`), and then use the result as a single input into a second
